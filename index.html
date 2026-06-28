@@ -1,0 +1,1803 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAPE HUNTER // CYBER DETECTIVE REN</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Noto+Sans+Thai:wght@400;700&display=swap');
+
+  :root {
+    --neon-pink: #ff2d78;
+    --neon-blue: #00f5ff;
+    --neon-green: #39ff14;
+    --neon-purple: #bf5fff;
+    --neon-yellow: #ffe600;
+    --dark-bg: #050510;
+    --dark-panel: #0a0a1e;
+    --dark-card: #0d0d2b;
+    --grid-color: rgba(0,245,255,0.06);
+    --text-dim: rgba(0,245,255,0.5);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--dark-bg);
+    color: var(--neon-blue);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--grid-color) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Scanlines */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.15) 2px,
+      rgba(0,0,0,0.15) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  #app {
+    position: relative;
+    z-index: 2;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 12px;
+  }
+
+  /* ===== HUD ===== */
+  #hud {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: rgba(10,10,30,0.9);
+    border: 1px solid rgba(0,245,255,0.3);
+    border-radius: 4px;
+    margin-bottom: 12px;
+    box-shadow: 0 0 20px rgba(0,245,255,0.1), inset 0 0 30px rgba(0,0,0,0.5);
+    position: relative;
+    overflow: hidden;
+  }
+
+  #hud::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+    animation: scanHud 3s linear infinite;
+  }
+
+  @keyframes scanHud {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  .hud-section { display: flex; flex-direction: column; gap: 4px; }
+  .hud-section.right { align-items: flex-end; }
+
+  .hud-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .lung-bar-wrap {
+    width: 100%;
+    height: 14px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(0,245,255,0.3);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  #lung-bar {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, var(--neon-green), #00ffaa);
+    transition: width 0.6s ease, background 0.6s ease;
+    position: relative;
+  }
+
+  #lung-bar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 60%);
+  }
+
+  #lung-pct {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--neon-green);
+    text-shadow: 0 0 15px var(--neon-green);
+    line-height: 1;
+  }
+
+  .hud-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: var(--neon-pink);
+    text-shadow: 0 0 10px var(--neon-pink);
+    text-align: center;
+  }
+
+  .hud-subtitle {
+    font-size: 9px;
+    color: var(--text-dim);
+    text-align: center;
+    letter-spacing: 1px;
+  }
+
+  #money-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--neon-yellow);
+    text-shadow: 0 0 15px var(--neon-yellow);
+    line-height: 1;
+  }
+
+  /* ===== MAIN GAME AREA ===== */
+  #game-area {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 12px;
+  }
+
+  @media (max-width: 640px) {
+    #game-area { grid-template-columns: 1fr; }
+  }
+
+  /* ===== PANELS ===== */
+  .panel {
+    background: rgba(10,10,30,0.95);
+    border: 1px solid rgba(0,245,255,0.2);
+    border-radius: 4px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: linear-gradient(180deg, var(--neon-blue), transparent);
+  }
+
+  .panel-tag {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 8px;
+    letter-spacing: 3px;
+    color: var(--neon-blue);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-tag::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(0,245,255,0.3), transparent);
+  }
+
+  /* ===== SECTION SCREENS ===== */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ===== BOSS DISPLAY ===== */
+  #boss-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  #boss-canvas {
+    display: block;
+    image-rendering: pixelated;
+    border: 1px solid rgba(255,45,120,0.3);
+    border-radius: 2px;
+    box-shadow: 0 0 20px rgba(255,45,120,0.2);
+  }
+
+  #boss-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--neon-pink);
+    text-shadow: 0 0 10px var(--neon-pink);
+    text-align: center;
+    letter-spacing: 2px;
+  }
+
+  .boss-hp-wrap {
+    width: 100%;
+    height: 10px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,45,120,0.4);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  #boss-hp-bar {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, var(--neon-pink), #ff6b35);
+    transition: width 0.6s ease;
+  }
+
+  #boss-status {
+    font-size: 10px;
+    color: var(--neon-pink);
+    text-align: center;
+    min-height: 16px;
+    letter-spacing: 1px;
+  }
+
+  /* Phase nav */
+  #phase-nav {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .phase-btn {
+    flex: 1;
+    padding: 6px 4px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 8px;
+    letter-spacing: 1px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(0,245,255,0.2);
+    color: var(--text-dim);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .phase-btn.active {
+    border-color: var(--neon-blue);
+    color: var(--neon-blue);
+    box-shadow: 0 0 10px rgba(0,245,255,0.3);
+    background: rgba(0,245,255,0.05);
+  }
+
+  .phase-btn:hover { border-color: var(--neon-blue); color: var(--neon-blue); }
+
+  /* ===== DIALOGUE SCREEN ===== */
+  #dialogue-scene {
+    position: relative;
+    min-height: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .char-area {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    min-height: 160px;
+  }
+
+  .char-sprite {
+    flex-shrink: 0;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 0 8px rgba(0,245,255,0.4));
+    animation: charFloat 3s ease-in-out infinite;
+  }
+
+  .char-sprite.enemy {
+    filter: drop-shadow(0 0 8px rgba(255,45,120,0.5));
+    animation: charFloat 2.5s ease-in-out infinite reverse;
+  }
+
+  @keyframes charFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-6px); }
+  }
+
+  .speech-bubble {
+    flex: 1;
+    background: rgba(13,13,43,0.95);
+    border: 1px solid rgba(0,245,255,0.4);
+    border-radius: 4px;
+    padding: 12px;
+    position: relative;
+    font-size: 13px;
+    line-height: 1.6;
+    font-family: 'Noto Sans Thai', sans-serif;
+  }
+
+  .speech-bubble.mia {
+    border-color: rgba(255,45,120,0.5);
+    background: rgba(20,5,15,0.95);
+  }
+
+  .speaker-tag {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  .speaker-tag.ren { color: var(--neon-blue); }
+  .speaker-tag.mia { color: var(--neon-pink); }
+
+  .choices-area {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .choice-btn {
+    padding: 10px 14px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(0,245,255,0.25);
+    color: var(--neon-blue);
+    font-family: 'Noto Sans Thai', 'Share Tech Mono', sans-serif;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+    line-height: 1.5;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .choice-btn::before {
+    content: '▶';
+    margin-right: 8px;
+    font-size: 9px;
+    color: var(--text-dim);
+  }
+
+  .choice-btn:hover {
+    border-color: var(--neon-blue);
+    background: rgba(0,245,255,0.08);
+    box-shadow: 0 0 12px rgba(0,245,255,0.2);
+    transform: translateX(3px);
+  }
+
+  .choice-btn.correct {
+    border-color: var(--neon-green) !important;
+    color: var(--neon-green) !important;
+    background: rgba(57,255,20,0.08) !important;
+    box-shadow: 0 0 20px rgba(57,255,20,0.3) !important;
+    pointer-events: none;
+  }
+
+  .choice-btn.wrong {
+    border-color: var(--neon-pink) !important;
+    color: var(--neon-pink) !important;
+    background: rgba(255,45,120,0.08) !important;
+    pointer-events: none;
+  }
+
+  .choice-btn:disabled { pointer-events: none; opacity: 0.5; }
+
+  .feedback-box {
+    padding: 10px 14px;
+    border-radius: 2px;
+    font-family: 'Noto Sans Thai', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    display: none;
+  }
+
+  .feedback-box.show { display: block; }
+  .feedback-box.good {
+    background: rgba(57,255,20,0.08);
+    border: 1px solid rgba(57,255,20,0.4);
+    color: var(--neon-green);
+  }
+  .feedback-box.bad {
+    background: rgba(255,45,120,0.08);
+    border: 1px solid rgba(255,45,120,0.4);
+    color: var(--neon-pink);
+  }
+
+  .next-btn {
+    padding: 10px 20px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    letter-spacing: 3px;
+    background: transparent;
+    border: 1px solid var(--neon-blue);
+    color: var(--neon-blue);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    display: none;
+    align-self: flex-end;
+  }
+
+  .next-btn.show { display: block; }
+  .next-btn:hover {
+    background: var(--neon-blue);
+    color: var(--dark-bg);
+    box-shadow: 0 0 20px rgba(0,245,255,0.4);
+  }
+
+  /* ===== LAB SCREEN ===== */
+  #lab-scene {
+    min-height: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .lab-viewport {
+    position: relative;
+    background: rgba(0,5,20,0.9);
+    border: 1px solid rgba(0,245,255,0.3);
+    border-radius: 4px;
+    overflow: hidden;
+    height: 200px;
+    cursor: crosshair;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lab-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,245,255,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,245,255,0.05) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  .lab-center {
+    text-align: center;
+    z-index: 2;
+    position: relative;
+  }
+
+  .lab-center canvas {
+    display: block;
+    margin: 0 auto 8px;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 0 12px rgba(0,245,255,0.5));
+    animation: cartridgeFloat 2s ease-in-out infinite;
+  }
+
+  @keyframes cartridgeFloat {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-8px) rotate(2deg); }
+  }
+
+  .lab-hint {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    animation: blink 1.5s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  .scan-ring {
+    position: absolute;
+    border: 2px solid var(--neon-blue);
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+  }
+
+  @keyframes scanRing {
+    0% { width: 0; height: 0; opacity: 0.8; }
+    100% { width: 120px; height: 120px; opacity: 0; }
+  }
+
+  .chemicals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+  }
+
+  .chem-card {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(0,245,255,0.15);
+    border-radius: 3px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    transition: all 0.3s;
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .chem-card.reveal {
+    opacity: 1;
+    transform: translateY(0);
+    border-color: rgba(255,45,120,0.4);
+    box-shadow: 0 0 10px rgba(255,45,120,0.1);
+  }
+
+  .chem-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  .chem-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    color: var(--neon-pink);
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+  }
+
+  .chem-desc {
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.4;
+    font-family: 'Noto Sans Thai', sans-serif;
+  }
+
+  .scan-progress {
+    width: 100%;
+    height: 6px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(0,245,255,0.2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  #scan-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--neon-blue), var(--neon-green));
+    transition: width 0.4s ease;
+    box-shadow: 0 0 8px var(--neon-blue);
+  }
+
+  .scan-label {
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+
+  /* ===== ALERT POPUP ===== */
+  #alert-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    background: rgba(5,0,20,0.98);
+    border: 2px solid var(--neon-pink);
+    border-radius: 4px;
+    padding: 20px 24px;
+    z-index: 100;
+    min-width: 280px;
+    max-width: 340px;
+    box-shadow: 0 0 40px rgba(255,45,120,0.4), 0 0 80px rgba(255,45,120,0.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  #alert-popup.show {
+    opacity: 1;
+    pointer-events: all;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .alert-header {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    color: var(--neon-pink);
+    letter-spacing: 4px;
+    margin-bottom: 8px;
+    animation: glitch 0.5s step-end infinite;
+  }
+
+  @keyframes glitch {
+    0%, 94%, 100% { transform: none; text-shadow: 0 0 10px var(--neon-pink); }
+    95% { transform: translateX(-2px); text-shadow: 2px 0 var(--neon-blue), -2px 0 var(--neon-pink); }
+    97% { transform: translateX(2px); text-shadow: -2px 0 var(--neon-blue), 2px 0 var(--neon-green); }
+  }
+
+  .alert-chem {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    font-weight: 900;
+    color: #fff;
+    margin: 8px 0;
+    text-shadow: 0 0 20px var(--neon-pink);
+  }
+
+  .alert-desc {
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.5;
+    font-family: 'Noto Sans Thai', sans-serif;
+    margin-bottom: 14px;
+  }
+
+  .alert-close {
+    padding: 8px 20px;
+    background: transparent;
+    border: 1px solid var(--neon-pink);
+    color: var(--neon-pink);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 3px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+
+  .alert-close:hover {
+    background: var(--neon-pink);
+    color: var(--dark-bg);
+    box-shadow: 0 0 20px rgba(255,45,120,0.5);
+  }
+
+  /* ===== VICTORY SCREEN ===== */
+  #victory-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+    padding: 20px;
+  }
+
+  #victory-screen.show { display: flex; }
+
+  .victory-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(24px, 6vw, 48px);
+    font-weight: 900;
+    color: var(--neon-green);
+    text-shadow: 0 0 30px var(--neon-green), 0 0 60px var(--neon-green);
+    animation: victoryPulse 1s ease-in-out infinite;
+    letter-spacing: 4px;
+  }
+
+  @keyframes victoryPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  .victory-sub {
+    font-family: 'Noto Sans Thai', sans-serif;
+    font-size: 14px;
+    color: rgba(255,255,255,0.7);
+    max-width: 400px;
+    line-height: 1.6;
+  }
+
+  .victory-stats {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .v-stat {
+    text-align: center;
+  }
+
+  .v-stat-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .v-stat-lbl {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  .restart-btn {
+    padding: 12px 32px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    letter-spacing: 4px;
+    background: transparent;
+    border: 2px solid var(--neon-green);
+    color: var(--neon-green);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    margin-top: 10px;
+  }
+
+  .restart-btn:hover {
+    background: var(--neon-green);
+    color: var(--dark-bg);
+    box-shadow: 0 0 30px rgba(57,255,20,0.5);
+  }
+
+  /* ===== BOSS FIGHT SCREEN ===== */
+  #boss-scene {
+    min-height: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+  }
+
+  .boss-big-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  #boss-big-canvas {
+    display: block;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 0 20px rgba(255,45,120,0.6));
+    animation: bossFloat 2s ease-in-out infinite;
+  }
+
+  @keyframes bossFloat {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-10px) scale(1.02); }
+  }
+
+  .boss-attack-text {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    color: var(--neon-pink);
+    letter-spacing: 2px;
+    text-align: center;
+    min-height: 18px;
+    text-shadow: 0 0 10px var(--neon-pink);
+  }
+
+  .boss-qa-area {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .boss-question {
+    background: rgba(20,0,10,0.9);
+    border: 1px solid rgba(255,45,120,0.3);
+    border-radius: 3px;
+    padding: 12px;
+    font-family: 'Noto Sans Thai', sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.8);
+  }
+
+  .boss-choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .boss-choice {
+    padding: 10px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,45,120,0.2);
+    color: rgba(255,255,255,0.7);
+    font-family: 'Noto Sans Thai', 'Share Tech Mono', sans-serif;
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  .boss-choice:hover {
+    border-color: var(--neon-pink);
+    background: rgba(255,45,120,0.08);
+    box-shadow: 0 0 10px rgba(255,45,120,0.2);
+  }
+
+  .boss-choice.correct {
+    border-color: var(--neon-green) !important;
+    color: var(--neon-green) !important;
+    background: rgba(57,255,20,0.08) !important;
+    pointer-events: none;
+  }
+
+  .boss-choice.wrong {
+    border-color: rgba(255,45,120,0.5) !important;
+    color: rgba(255,45,120,0.5) !important;
+    pointer-events: none;
+  }
+
+  /* GLITCH effect */
+  .glitch-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 500;
+    opacity: 0;
+    background: rgba(255,45,120,0.05);
+    transition: opacity 0.1s;
+  }
+
+  .glitch-overlay.active { opacity: 1; }
+
+  /* Floating particles */
+  .particle {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+    animation: particleDrift linear infinite;
+  }
+
+  @keyframes particleDrift {
+    0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.6; }
+    90% { opacity: 0.3; }
+    100% { transform: translateY(-20px) rotate(360deg); opacity: 0; }
+  }
+
+  /* Separator */
+  .neon-sep {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+    margin: 4px 0;
+    opacity: 0.4;
+  }
+
+  /* Stat flash */
+  @keyframes statFlash {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+
+  .flash { animation: statFlash 0.4s ease; }
+
+  /* Damage flash */
+  @keyframes damageFlash {
+    0%, 100% { box-shadow: none; }
+    50% { box-shadow: inset 0 0 30px rgba(255,45,120,0.4); }
+  }
+  .damage { animation: damageFlash 0.4s ease; }
+
+  /* Corner deco */
+  .corner-deco {
+    position: absolute;
+    width: 12px; height: 12px;
+    opacity: 0.6;
+  }
+  .corner-deco.tl { top: 0; left: 0; border-top: 2px solid var(--neon-blue); border-left: 2px solid var(--neon-blue); }
+  .corner-deco.tr { top: 0; right: 0; border-top: 2px solid var(--neon-blue); border-right: 2px solid var(--neon-blue); }
+  .corner-deco.bl { bottom: 0; left: 0; border-bottom: 2px solid var(--neon-blue); border-left: 2px solid var(--neon-blue); }
+  .corner-deco.br { bottom: 0; right: 0; border-bottom: 2px solid var(--neon-blue); border-right: 2px solid var(--neon-blue); }
+
+  /* Overlay for interactable */
+  #overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 50;
+  }
+  #overlay.show { display: block; }
+
+  /* Intro screen */
+  #intro-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 70vh;
+    gap: 24px;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .intro-logo {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(20px, 5vw, 36px);
+    font-weight: 900;
+    line-height: 1.1;
+  }
+
+  .intro-logo .line1 { color: var(--neon-pink); text-shadow: 0 0 20px var(--neon-pink); }
+  .intro-logo .line2 { color: var(--neon-blue); text-shadow: 0 0 20px var(--neon-blue); font-size: 0.65em; letter-spacing: 6px; }
+
+  .intro-desc {
+    font-family: 'Noto Sans Thai', sans-serif;
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+    max-width: 380px;
+    line-height: 1.7;
+  }
+
+  .start-btn {
+    padding: 14px 40px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    letter-spacing: 4px;
+    background: transparent;
+    border: 2px solid var(--neon-pink);
+    color: var(--neon-pink);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .start-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--neon-pink);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: -1;
+  }
+
+  .start-btn:hover::before { transform: translateX(0); }
+  .start-btn:hover { color: var(--dark-bg); box-shadow: 0 0 30px rgba(255,45,120,0.5); }
+
+  .intro-pixel-art {
+    image-rendering: pixelated;
+    animation: charFloat 3s ease-in-out infinite;
+  }
+</style>
+</head>
+<body>
+
+<div class="glitch-overlay" id="glitch-overlay"></div>
+<div id="overlay"></div>
+
+<!-- Alert Popup -->
+<div id="alert-popup">
+  <div class="corner-deco tl"></div>
+  <div class="corner-deco tr"></div>
+  <div class="corner-deco bl"></div>
+  <div class="corner-deco br"></div>
+  <div class="alert-header">⚠ CHEMICAL ALERT DETECTED ⚠</div>
+  <div class="alert-chem" id="alert-chem-name">LEAD</div>
+  <div class="alert-desc" id="alert-chem-desc">สารตะกั่วถูกตรวจพบในน้ำยา</div>
+  <button class="alert-close" onclick="closeAlert()">// DISMISS //</button>
+</div>
+
+<!-- Victory Screen -->
+<div id="victory-screen">
+  <div class="corner-deco tl"></div>
+  <div class="corner-deco tr"></div>
+  <div class="corner-deco bl"></div>
+  <div class="corner-deco br"></div>
+  <canvas id="victory-canvas" width="120" height="80" style="image-rendering:pixelated;"></canvas>
+  <div class="victory-title">MISSION COMPLETE</div>
+  <div class="victory-sub">เรน สำเร็จภารกิจ! มิอาเข้าใจแล้วว่าบุหรี่ไฟฟ้าไม่ใช่แค่ "ไอน้ำ" — มันเต็มไปด้วยสารพิษที่ซ่อนอยู่</div>
+  <div class="victory-stats">
+    <div class="v-stat">
+      <div class="v-stat-val" id="final-lung" style="color:var(--neon-green)">—%</div>
+      <div class="v-stat-lbl">LUNG HEALTH</div>
+    </div>
+    <div class="v-stat">
+      <div class="v-stat-val" id="final-money" style="color:var(--neon-yellow)">฿—</div>
+      <div class="v-stat-lbl">MONEY SAVED</div>
+    </div>
+  </div>
+  <div class="victory-sub" style="font-size:11px; color:var(--text-dim)">ข้อมูลอ้างอิง: WHO, กรมควบคุมโรค กระทรวงสาธารณสุข</div>
+  <button class="restart-btn" onclick="restartGame()">// PLAY AGAIN //</button>
+</div>
+
+<div id="app">
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-section">
+      <div class="hud-label">LUNG HEALTH</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="lung-pct">100%</span>
+        <div class="lung-bar-wrap" style="width:100px">
+          <div id="lung-bar"></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="hud-title">VAPE HUNTER</div>
+      <div class="hud-subtitle">CYBER DETECTIVE REN</div>
+    </div>
+    <div class="hud-section right">
+      <div class="hud-label">MONEY SAVED</div>
+      <div id="money-val">฿0</div>
+    </div>
+  </div>
+
+  <!-- Phase Nav -->
+  <div id="phase-nav">
+    <button class="phase-btn active" onclick="goPhase('intro')">01 INTRO</button>
+    <button class="phase-btn" onclick="goPhase('dialogue')">02 DIALOGUE</button>
+    <button class="phase-btn" onclick="goPhase('lab')">03 LAB SCAN</button>
+    <button class="phase-btn" onclick="goPhase('boss')">04 BOSS FIGHT</button>
+  </div>
+
+  <div id="game-area">
+    <!-- LEFT: MAIN CONTENT -->
+    <div>
+      <!-- INTRO SCREEN -->
+      <div id="intro-screen" class="screen active">
+        <canvas id="intro-canvas" width="160" height="120" class="intro-pixel-art"></canvas>
+        <div class="intro-logo">
+          <div class="line1">VAPE HUNTER</div>
+          <div class="line2">CYBER DETECTIVE REN</div>
+        </div>
+        <div class="intro-desc">
+          🌆 ยุค 2047 — เมืองนีออนไม่เคยหลับ บุหรี่ไฟฟ้าระบาดหนักในหมู่วัยรุ่น<br><br>
+          คุณคือ <strong style="color:var(--neon-blue)">เรน</strong> นักสืบไซเบอร์ผู้มีภารกิจหยุดยั้งการแพร่ระบาดของสารพิษซ่อนเร้นในควันหวานๆ
+        </div>
+        <button class="start-btn" onclick="goPhase('dialogue')">// START MISSION //</button>
+      </div>
+
+      <!-- DIALOGUE SCREEN -->
+      <div id="dialogue-screen" class="screen panel">
+        <div class="corner-deco tl"></div>
+        <div class="corner-deco tr"></div>
+        <div class="corner-deco bl"></div>
+        <div class="corner-deco br"></div>
+        <div class="panel-tag">DEBUNK SYSTEM v2.0</div>
+        <div id="dialogue-scene"></div>
+      </div>
+
+      <!-- LAB SCREEN -->
+      <div id="lab-screen" class="screen panel">
+        <div class="corner-deco tl"></div>
+        <div class="corner-deco tr"></div>
+        <div class="corner-deco bl"></div>
+        <div class="corner-deco br"></div>
+        <div class="panel-tag">CHEMICAL LAB SCAN</div>
+        <div id="lab-scene"></div>
+      </div>
+
+      <!-- BOSS SCREEN -->
+      <div id="boss-screen" class="screen panel">
+        <div class="corner-deco tl"></div>
+        <div class="corner-deco tr"></div>
+        <div class="corner-deco bl"></div>
+        <div class="corner-deco br"></div>
+        <div class="panel-tag">BOSS ENCOUNTER</div>
+        <div id="boss-scene"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: BOSS SIDEBAR -->
+    <div id="boss-sidebar" class="panel">
+      <div class="panel-tag">ENEMY STATUS</div>
+      <div id="boss-panel">
+        <canvas id="boss-canvas" width="160" height="120"></canvas>
+        <div id="boss-name">STRAWBERRY SHOCK</div>
+        <div class="boss-hp-wrap">
+          <div id="boss-hp-bar"></div>
+        </div>
+        <div id="boss-status">THREAT LEVEL: HIGH</div>
+        <div class="neon-sep"></div>
+        <div style="font-size:9px; color:var(--text-dim); letter-spacing:1px; line-height:1.6;">
+          บอสมอนสเตอร์ควันหวาน<br>
+          ซ่อนพิษอย่างร้ายกาจ<br>
+          ดูน่ารัก... แต่อันตราย
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== GAME STATE =====
+const STATE = {
+  lungHealth: 100,
+  money: 0,
+  bossHp: 100,
+  phase: 'intro',
+  dialogueIdx: 0,
+  labScans: 0,
+  bossQIdx: 0,
+  currentBoss: 'strawberry',
+};
+
+// ===== PIXEL ART SPRITES =====
+const SPRITES = {
+  // Ren: pixel art detective
+  ren: [
+    [0,0,1,1,1,1,0,0],
+    [0,1,2,2,2,2,1,0],
+    [0,1,2,3,3,2,1,0],
+    [0,1,2,2,2,2,1,0],
+    [0,0,1,4,4,1,0,0],
+    [0,1,4,4,4,4,1,0],
+    [1,4,4,0,0,4,4,1],
+    [0,1,0,0,0,0,1,0],
+  ],
+  // Mia: pixel art teen
+  mia: [
+    [0,0,1,1,1,1,0,0],
+    [0,1,5,5,5,5,1,0],
+    [0,1,5,3,3,5,1,0],
+    [0,1,5,5,5,5,1,0],
+    [0,0,1,6,6,1,0,0],
+    [0,1,6,6,6,6,1,0],
+    [1,6,6,0,0,6,6,1],
+    [0,1,0,0,0,0,1,0],
+  ],
+  // Strawberry Boss
+  strawberry: [
+    [0,0,0,0,7,7,0,0,0,0,0,0],
+    [0,0,7,7,7,7,7,7,0,0,0,0],
+    [0,7,7,8,7,7,8,7,7,0,0,0],
+    [0,7,7,7,7,7,7,7,7,0,0,0],
+    [0,0,7,7,7,9,7,7,0,0,0,0],
+    [0,0,0,7,7,7,7,0,0,0,0,0],
+    [0,0,7,7,7,7,7,7,0,0,0,0],
+    [0,7,7,7,7,7,7,7,7,0,0,0],
+    [7,7,7,7,7,7,7,7,7,7,0,0],
+    [7,7,7,7,7,7,7,7,7,7,0,0],
+    [0,7,7,7,7,7,7,7,7,0,0,0],
+    [0,0,7,7,7,7,7,7,0,0,0,0],
+  ],
+  // Mango Boss
+  mango: [
+    [0,0,0,0,10,0,0,0,0,0,0,0],
+    [0,0,0,10,10,10,0,0,0,0,0,0],
+    [0,0,11,11,11,11,11,0,0,0,0,0],
+    [0,11,11,11,11,11,11,11,0,0,0,0],
+    [0,11,11,8,11,11,8,11,0,0,0,0],
+    [11,11,11,11,11,11,11,11,11,0,0,0],
+    [11,11,11,11,9,11,11,11,11,0,0,0],
+    [11,11,11,11,11,11,11,11,11,0,0,0],
+    [0,11,11,11,11,11,11,11,0,0,0,0],
+    [0,0,11,11,11,11,11,0,0,0,0,0],
+    [0,0,0,12,0,0,12,0,0,0,0,0],
+    [0,0,0,12,12,12,12,0,0,0,0,0],
+  ],
+};
+
+const PALETTE = {
+  0: null, // transparent
+  1: '#1a0a2e', // dark outline
+  2: '#00f5ff', // neon blue (Ren body)
+  3: '#ff2d78', // neon pink (eyes)
+  4: '#bf5fff', // purple (Ren pants)
+  5: '#ff9ed8', // pink (Mia body)
+  6: '#ff2d78', // pink-red (Mia pants)
+  7: '#ff4466', // strawberry red
+  8: '#000000', // black (eyes)
+  9: '#ff9999', // light pink (mouth)
+  10: '#39ff14', // stem green
+  11: '#ffe600', // mango yellow
+  12: '#ff8c00', // mango feet
+};
+
+function drawSprite(canvas, spriteKey, scale, customPalette) {
+  const ctx = canvas.getContext('2d');
+  const sprite = SPRITES[spriteKey];
+  const pal = customPalette || PALETTE;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  sprite.forEach((row, y) => {
+    row.forEach((pixel, x) => {
+      if (pixel !== 0 && pal[pixel]) {
+        ctx.fillStyle = pal[pixel];
+        ctx.fillRect(x * scale, y * scale, scale, scale);
+      }
+    });
+  });
+}
+
+// ===== UPDATE HUD =====
+function updateHUD() {
+  const lp = document.getElementById('lung-pct');
+  const lb = document.getElementById('lung-bar');
+  const mv = document.getElementById('money-val');
+  lp.textContent = STATE.lungHealth + '%';
+  lb.style.width = STATE.lungHealth + '%';
+  const h = STATE.lungHealth;
+  lb.style.background = h > 60
+    ? 'linear-gradient(90deg,#39ff14,#00ffaa)'
+    : h > 30
+    ? 'linear-gradient(90deg,#ffe600,#ff8c00)'
+    : 'linear-gradient(90deg,#ff2d78,#ff6b35)';
+  mv.textContent = '฿' + STATE.money.toLocaleString();
+  lp.classList.add('flash'); setTimeout(() => lp.classList.remove('flash'), 400);
+}
+
+function updateBossHp() {
+  document.getElementById('boss-hp-bar').style.width = Math.max(0, STATE.bossHp) + '%';
+  const bossStatus = document.getElementById('boss-status');
+  if (STATE.bossHp <= 0) {
+    bossStatus.textContent = '💀 DEFEATED';
+    bossStatus.style.color = 'var(--neon-green)';
+  } else if (STATE.bossHp < 50) {
+    bossStatus.textContent = '⚠ WEAKENING...';
+    bossStatus.style.color = 'var(--neon-yellow)';
+  } else {
+    bossStatus.textContent = '🔴 THREAT LEVEL: HIGH';
+    bossStatus.style.color = 'var(--neon-pink)';
+  }
+}
+
+function triggerGlitch() {
+  const g = document.getElementById('glitch-overlay');
+  g.classList.add('active');
+  setTimeout(() => g.classList.remove('active'), 200);
+}
+
+function damageLungs(amount) {
+  STATE.lungHealth = Math.max(0, STATE.lungHealth - amount);
+  updateHUD();
+  triggerGlitch();
+  document.getElementById('hud').classList.add('damage');
+  setTimeout(() => document.getElementById('hud').classList.remove('damage'), 400);
+}
+
+function healLungs(amount) {
+  STATE.lungHealth = Math.min(100, STATE.lungHealth + amount);
+  updateHUD();
+}
+
+function earnMoney(amount) {
+  STATE.money += amount;
+  updateHUD();
+}
+
+function damageBoss(amount) {
+  STATE.bossHp = Math.max(0, STATE.bossHp - amount);
+  updateBossHp();
+  const canvas = document.getElementById('boss-canvas');
+  canvas.style.filter = 'drop-shadow(0 0 20px var(--neon-green)) hue-rotate(120deg)';
+  setTimeout(() => canvas.style.filter = 'drop-shadow(0 0 20px rgba(255,45,120,0.6))', 400);
+}
+
+// ===== PHASE NAVIGATION =====
+function goPhase(phase) {
+  STATE.phase = phase;
+  // Update buttons
+  document.querySelectorAll('.phase-btn').forEach((btn, i) => {
+    const phases = ['intro','dialogue','lab','boss'];
+    btn.classList.toggle('active', phases[i] === phase);
+  });
+  // Show/hide screens
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const map = {
+    intro: 'intro-screen',
+    dialogue: 'dialogue-screen',
+    lab: 'lab-screen',
+    boss: 'boss-screen',
+  };
+  const el = document.getElementById(map[phase]);
+  if (el) el.classList.add('active');
+
+  if (phase === 'intro') initIntro();
+  if (phase === 'dialogue') initDialogue();
+  if (phase === 'lab') initLab();
+  if (phase === 'boss') initBoss();
+}
+
+// ===== INTRO =====
+function initIntro() {
+  const c = document.getElementById('intro-canvas');
+  if (!c) return;
+  c.width = 160; c.height = 120;
+  // Draw Ren on left, Mia on right
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, 160, 120);
+  const s = SPRITES.ren;
+  const scl = 10;
+  s.forEach((row, y) => row.forEach((px, x) => {
+    if (px !== 0 && PALETTE[px]) {
+      ctx.fillStyle = PALETTE[px];
+      ctx.fillRect(20 + x * scl, 10 + y * scl, scl, scl);
+    }
+  }));
+  const m = SPRITES.mia;
+  m.forEach((row, y) => row.forEach((px, x) => {
+    if (px !== 0 && PALETTE[px]) {
+      ctx.fillStyle = PALETTE[px];
+      ctx.fillRect(86 + x * scl, 10 + y * scl, scl, scl);
+    }
+  }));
+  // Glowing line between
+  ctx.fillStyle = 'rgba(0,245,255,0.6)';
+  ctx.fillRect(78, 10, 2, 80);
+}
+
+// ===== DIALOGUE =====
+const DIALOGUES = [
+  {
+    speaker: 'mia',
+    text: '"มันก็แค่ไอน้ำแต่งกลิ่นผลไม้หวานๆ ไม่มีอันตรายอะไรหรอก ใช่มั้ย เรน?" 🍓',
+    choices: [
+      { text: '"ไม่ใช่นะ มิอา! มันมีโลหะหนัก (Heavy Metals) อย่างตะกั่วและนิกเกิลที่ทำลายปอดและสมอง"', correct: true },
+      { text: '"ก็จริงนะ มันเป็นแค่ไอน้ำ ไม่มีทาร์อย่างบุหรี่ธรรมดา"', correct: false },
+      { text: '"อาจจะปลอดภัยกว่าบุหรี่ปกติก็ได้"', correct: false },
+    ],
+    goodFeedback: '✅ ถูกต้อง! งานวิจัย Johns Hopkins พบโลหะหนักในละอองไอ: ตะกั่ว (Lead), นิกเกิล (Nickel), แมงกานีส (Manganese) ที่ทำลายปอดและระบบประสาท',
+    badFeedback: '❌ ไม่ถูกต้อง! น้ำยาบุหรี่ไฟฟ้ามีสารพิษมากกว่าที่คิด ลองตอบใหม่!',
+    hpGain: 5, moneyGain: 150, bossLoss: 20,
+  },
+  {
+    speaker: 'mia',
+    text: '"แต่มันไม่มีนิโคตินนี่นา ซื้อแบบ "0mg" ก็ได้ก็ไม่ติดแน่ๆ" 🤔',
+    choices: [
+      { text: '"แม้จะเขียน 0mg แต่งานวิจัยพบว่าหลายยี่ห้อมีนิโคตินเกินมาตรฐานอย่างผิดกฎหมาย!"', correct: true },
+      { text: '"ใช่เลย ถ้าเลือก 0mg ก็ปลอดภัยจากการเสพติดได้"', correct: false },
+      { text: '"นิโคตินไม่ใช่เรื่องสำคัญ ตราบใดที่ไม่ได้สูบบุหรี่"', correct: false },
+    ],
+    goodFeedback: '✅ ถูกต้อง! FDA สหรัฐฯ ตรวจพบนิโคตินในผลิตภัณฑ์ที่ฉลากระบุ 0mg ถึง 41.3% ของตัวอย่าง นิโคตินทำลายการพัฒนาสมองวัยรุ่นอย่างถาวร',
+    badFeedback: '❌ ผิดแล้ว! ฉลาก "0mg" ไม่ได้การันตีความปลอดภัย ลองใหม่!',
+    hpGain: 5, moneyGain: 200, bossLoss: 20,
+  },
+  {
+    speaker: 'mia',
+    text: '"มันช่วยผ่อนคลายความเครียดได้นะ ทุกคนในกลุ่มก็ใช้กัน แค่ลองดูสักครั้งได้มั้ย?" 😟',
+    choices: [
+      { text: '"นิโคตินทำให้สมองหลั่ง dopamine ชั่วคราว แต่ร่างกายจะต้องการมากขึ้นเรื่อยๆ นี่คือวงจรการเสพติด!"', correct: true },
+      { text: '"แค่ครั้งเดียวไม่เป็นไรหรอก ติดไม่ได้จากการลองครั้งเดียว"', correct: false },
+      { text: '"ถ้าเพื่อนทุกคนทำก็คงไม่อันตรายมาก"', correct: false },
+    ],
+    goodFeedback: '✅ ยอดเยี่ยม! นิโคตินกระตุ้น dopamine แล้วทำให้เกิด "tolerance" — ต้องใช้มากขึ้นเพื่อให้รู้สึกเหมือนเดิม วัยรุ่นติดนิโคตินเร็วกว่าผู้ใหญ่ถึง 3 เท่า',
+    badFeedback: '❌ ผิด! นิโคตินทำให้ติดได้แม้ลองครั้งแรก โดยเฉพาะในวัยรุ่นที่สมองยังพัฒนาอยู่',
+    hpGain: 10, moneyGain: 300, bossLoss: 30,
+  },
+];
+
+let dlgState = { idx: 0, answered: false };
+
+function initDialogue() {
+  dlgState.idx = 0;
+  dlgState.answered = false;
+  renderDialogue();
+}
+
+function renderDialogue() {
+  const scene = document.getElementById('dialogue-scene');
+  const d = DIALOGUES[dlgState.idx];
+  if (!d) { goPhase('lab'); return; }
+
+  scene.innerHTML = `
+    <div class="char-area">
+      <canvas id="ren-sprite" width="64" height="80" class="char-sprite"></canvas>
+      <div class="speech-bubble mia">
+        <div class="speaker-tag mia">MIA // FRIEND</div>
+        ${d.text}
+      </div>
+      <canvas id="mia-sprite" width="64" height="80" class="char-sprite enemy"></canvas>
+    </div>
+    <div class="choices-area" id="choices-area">
+      ${d.choices.map((c, i) => `
+        <button class="choice-btn" onclick="answerDialogue(${i})">${c.text}</button>
+      `).join('')}
+    </div>
+    <div class="feedback-box" id="fb-box"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:9px;color:var(--text-dim);letter-spacing:1px;">คำถาม ${dlgState.idx + 1}/${DIALOGUES.length}</div>
+      <button class="next-btn" id="next-dlg-btn" onclick="nextDialogue()">ถัดไป ▶</button>
+    </div>
+  `;
+  // Draw sprites
+  setTimeout(() => {
+    const rc = document.getElementById('ren-sprite');
+    const mc = document.getElementById('mia-sprite');
+    if (rc) drawSprite(rc, 'ren', 8);
+    if (mc) drawSprite(mc, 'mia', 8);
+  }, 50);
+}
+
+function answerDialogue(idx) {
+  if (dlgState.answered) return;
+  dlgState.answered = true;
+  const d = DIALOGUES[dlgState.idx];
+  const btns = document.querySelectorAll('.choice-btn');
+  const fb = document.getElementById('fb-box');
+  const nextBtn = document.getElementById('next-dlg-btn');
+
+  btns.forEach((btn, i) => {
+    btn.disabled = true;
+    if (d.choices[i].correct) btn.classList.add('correct');
+    else if (i === idx) btn.classList.add('wrong');
+  });
+
+  if (d.choices[idx].correct) {
+    fb.className = 'feedback-box show good';
+    fb.textContent = d.goodFeedback;
+    healLungs(d.hpGain);
+    earnMoney(d.moneyGain);
+    damageBoss(d.bossLoss);
+  } else {
+    fb.className = 'feedback-box show bad';
+    fb.textContent = d.badFeedback;
+    damageLungs(10);
+  }
+  nextBtn.classList.add('show');
+}
+
+function nextDialogue() {
+  dlgState.idx++;
+  dlgState.answered = false;
+  if (dlgState.idx >= DIALOGUES.length) {
+    goPhase('lab');
+  } else {
+    renderDialogue();
+  }
+}
+
+// ===== LAB =====
+const CHEMICALS = [
+  { icon: '☠️', name: 'LEAD (Pb)', desc: 'สารตะกั่วจากขดลวดทำความร้อน ทำลายสมองและไต', color: '#ff2d78', dmg: 0 },
+  { icon: '🧪', name: 'FORMALDEHYDE', desc: 'ฟอร์มาลดีไฮด์ สารก่อมะเร็ง พบในน้ำยาที่ถูกเผา', color: '#bf5fff', dmg: 0 },
+  { icon: '⚗️', name: 'DIACETYL', desc: 'สารแต่งกลิ่นเนย ทำให้เกิดโรค "Popcorn Lung"', color: '#ffe600', dmg: 0 },
+  { icon: '💀', name: 'ACROLEIN', desc: 'สารกำจัดวัชพืช ทำลายปอดและทางเดินหายใจ', color: '#00f5ff', dmg: 0 },
+  { icon: '🔬', name: 'EVALI FUMES', desc: 'สารที่เชื่อมโยงกับโรคปอดอักเสบรุนแรง (EVALI)', color: '#ff6b35', dmg: 0 },
+  { icon: '⚡', name: 'NICOTINE SALT', desc: 'นิโคตินซอลต์ดูดซึมเร็ว ทำให้ติดในเวลาสั้น', color: '#ff2d78', dmg: 0 },
+];
+
+let scanCount = 0;
+let scanInterval = null;
+
+function initLab() {
+  scanCount = 0;
+  const scene = document.getElementById('lab-scene');
+  scene.innerHTML = `
+    <div class="lab-viewport" id="lab-viewport" onclick="doScan(event)">
+      <div class="lab-grid"></div>
+      <div class="lab-center">
+        <canvas id="cartridge-canvas" width="60" height="80"></canvas>
+        <div class="lab-hint">[ CLICK TO SCAN ]</div>
+      </div>
+    </div>
+    <div class="scan-label">SCAN PROGRESS</div>
+    <div class="scan-progress"><div id="scan-bar"></div></div>
+    <div class="chemicals-grid" id="chem-grid">
+      ${CHEMICALS.map((c, i) => `
+        <div class="chem-card" id="chem-${i}">
+          <span class="chem-icon">${c.icon}</span>
+          <div>
+            <div class="chem-name" style="color:${c.color}">${c.name}</div>
+            <div class="chem-desc">${c.desc}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  // Draw vape cartridge
+  drawCartridge(document.getElementById('cartridge-canvas'));
+}
+
+function drawCartridge(canvas) {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 60, 80);
+  // Body
+  ctx.fillStyle = '#1a0030';
+  ctx.fillRect(18, 10, 24, 55);
+  // Neon outline
+  ctx.strokeStyle = '#ff2d78';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(18, 10, 24, 55);
+  // Liquid inside
+  ctx.fillStyle = 'rgba(255,45,120,0.3)';
+  ctx.fillRect(20, 30, 20, 34);
+  // Liquid surface glow
+  ctx.fillStyle = 'rgba(255,45,120,0.8)';
+  ctx.fillRect(20, 30, 20, 3);
+  // Tip
+  ctx.fillStyle = '#0d0020';
+  ctx.fillRect(22, 5, 16, 7);
+  ctx.strokeStyle = '#00f5ff';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(22, 5, 16, 7);
+  // Vapor dots
+  for (let i = 0; i < 4; i++) {
+    ctx.fillStyle = `rgba(0,245,255,${0.3 + i * 0.1})`;
+    ctx.beginPath();
+    ctx.arc(26 + (i % 2) * 8, 2 - i * 1, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function doScan(e) {
+  if (scanCount >= CHEMICALS.length) return;
+  const vp = document.getElementById('lab-viewport');
+  const rect = vp.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  // Spawn ring
+  const ring = document.createElement('div');
+  ring.className = 'scan-ring';
+  ring.style.cssText = `left:${x}px;top:${y}px;animation:scanRing 0.6s ease-out forwards;`;
+  vp.appendChild(ring);
+  setTimeout(() => ring.remove(), 700);
+
+  const chem = CHEMICALS[scanCount];
+  scanCount++;
+  // Update bar
+  document.getElementById('scan-bar').style.width = (scanCount / CHEMICALS.length * 100) + '%';
+  // Reveal card
+  const card = document.getElementById(`chem-${scanCount - 1}`);
+  if (card) {
+    setTimeout(() => card.classList.add('reveal'), 100);
+  }
+  // Show alert
+  showAlert(chem.name, chem.desc);
+  // Damage boss
+  damageBoss(10);
+  earnMoney(100);
+
+  if (scanCount >= CHEMICALS.length) {
+    setTimeout(() => goPhase('boss'), 1200);
+  }
+}
+
+// ===== ALERT =====
+function showAlert(name, desc) {
+  document.getElementById('alert-chem-name').textContent = '⚠ ' + name;
+  document.getElementById('alert-chem-desc').textContent = desc;
+  document.getElementById('alert-popup').classList.add('show');
+  document.getElementById('overlay').classList.add('show');
+  triggerGlitch();
+}
+
+function closeAlert() {
+  document.getElementById('alert-popup').classList.remove('show');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// ===== BOSS =====
+const BOSS_QS = [
+  {
+    q: '🎮 BOSS ATTACK: "ฉันแค่รสสตรอว์เบอร์รี่หวานๆ เด็กๆ ก็รักฉัน!"\n\nทำไมรสหวานในบุหรี่ไฟฟ้าถึงอันตรายเป็นพิเศษ?',
+    choices: [
+      'ทำให้เด็กและวัยรุ่นเข้าถึงได้ง่ายขึ้น เพิ่มความเสี่ยงติดนิโคติน',
+      'รสหวานทำให้ควันมีกลิ่นดี จึงสูดมากขึ้นโดยไม่รู้ตัว',
+      'ทั้งสองข้อถูกต้อง — การตลาดกำหนดเป้าหมายเยาวชน',
+    ],
+    correct: 2,
+    bossLoss: 30, hpGain: 10, money: 250,
+  },
+  {
+    q: '🎮 BOSS ATTACK: "ฉัน Mango Trap มาแล้ว! แค่ไอน้ำ ไม่มีทาร์ ปลอดภัยกว่าบุหรี่!"\n\nอะไรที่ผิดพลาดในคำกล่าวนี้?',
+    choices: [
+      'บุหรี่ไฟฟ้าก็มีสารก่อมะเร็งได้เช่นกัน เพียงแต่ต่างชนิดกัน',
+      'บุหรี่ไฟฟ้าเพิ่งมีหลักฐานระยะยาว ยังสรุปไม่ได้ว่าปลอดภัยกว่า',
+      'ทั้งสองข้อ — "ปลอดภัยกว่า" ≠ "ปลอดภัย" และยังมีสารพิษอื่น',
+    ],
+    correct: 2,
+    bossLoss: 35, hpGain: 10, money: 300,
+  },
+  {
+    q: '🎮 FINAL ATTACK: "วัยรุ่นทุกคนในกลุ่มใช้ฉัน! อย่าเป็นคนนอกกลุ่มเลย!"\n\nวิธีรับมือกับแรงกดดันทางสังคม (Peer Pressure) ที่ดีที่สุดคืออะไร?',
+    choices: [
+      'ยืนหยัดด้วยข้อเท็จจริง: "รู้มั้ย มันมีสารตะกั่วนะ" พร้อมเสนอกิจกรรมอื่นแทน',
+      'เพิกเฉยและออกจากสถานการณ์นั้นทันที',
+    ],
+    correct: 0,
+    bossLoss: 100, hpGain: 15, money: 500,
+  },
+];
+
+let bossQState = { idx: 0, answered: false, currentBoss: 'strawberry' };
+
+function initBoss() {
+  bossQState.idx = 0;
+  bossQState.answered = false;
+  bossQState.currentBoss = STATE.bossHp > 50 ? 'strawberry' : 'mango';
+  renderBossQ();
+  // Draw big boss
+  setTimeout(drawBigBoss, 100);
+}
+
+function drawBigBoss() {
+  const c = document.getElementById('boss-big-canvas');
+  if (!c) return;
+  const key = STATE.bossHp > 40 ? 'strawberry' : 'mango';
+  drawSprite(c, key, 10);
+  // Update sidebar too
+  const sc = document.getElementById('boss-canvas');
+  if (sc) drawSprite(sc, key, 10);
+  document.getElementById('boss-name').textContent =
+    key === 'strawberry' ? 'STRAWBERRY SHOCK' : 'MANGO TRAP';
+}
+
+function renderBossQ() {
+  const scene = document.getElementById('boss-scene');
+  const q = BOSS_QS[bossQState.idx];
+  if (!q) {
+    showVictory();
+    return;
+  }
+
+  const bossKey = STATE.bossHp > 40 ? 'strawberry' : 'mango';
+  const bossName = bossKey === 'strawberry' ? 'STRAWBERRY SHOCK' : '⚡ MANGO TRAP';
+
+  scene.innerHTML = `
+    <div class="boss-big-wrap">
+      <canvas id="boss-big-canvas" width="120" height="120"></canvas>
+      <div class="boss-attack-text" id="boss-atk-text">💥 ${bossName} — ATTACKS!</div>
+    </div>
+    <div class="boss-qa-area">
+      <div class="boss-question">${q.q.replace(/\n/g, '<br>')}</div>
+      <div class="boss-choices">
+        ${q.choices.map((c, i) => `
+          <button class="boss-choice" onclick="answerBoss(${i})">${c}</button>
+        `).join('')}
+      </div>
+      <div class="feedback-box" id="boss-fb"></div>
+      <button class="next-btn" id="boss-next" onclick="nextBossQ()" style="align-self:flex-end">ถัดไป ▶</button>
+    </div>
+  `;
+  setTimeout(drawBigBoss, 50);
+}
+
+function answerBoss(idx) {
+  if (bossQState.answered) return;
+  bossQState.answered = true;
+  const q = BOSS_QS[bossQState.idx];
+  const btns = document.querySelectorAll('.boss-choice');
+  const fb = document.getElementById('boss-fb');
+  const next = document.getElementById('boss-next');
+  const atkText = document.getElementById('boss-atk-text');
+
+  btns.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.correct) btn.classList.add('correct');
+    else if (i === idx) btn.classList.add('wrong');
+  });
+
+  if (idx === q.correct) {
+    fb.className = 'feedback-box show good';
+    fb.textContent = '✅ โจมตีสำเร็จ! บอสสูญเสียพลังงาน!';
+    damageBoss(q.bossLoss);
+    healLungs(q.hpGain);
+    earnMoney(q.money);
+    atkText.textContent = '💥 HIT! บอสอ่อนแอลง!';
+    atkText.style.color = 'var(--neon-green)';
+  } else {
+    fb.className = 'feedback-box show bad';
+    fb.textContent = '❌ บอสโจมตีคืน! ปอดได้รับความเสียหาย!';
+    damageLungs(15);
+    atkText.textContent = '💀 บอสโจมตีคืน!';
+  }
+  next.classList.add('show');
+  drawBigBoss();
+}
+
+function nextBossQ() {
+  bossQState.idx++;
+  bossQState.answered = false;
+  if (bossQState.idx >= BOSS_QS.length || STATE.bossHp <= 0) {
+    showVictory();
+  } else {
+    renderBossQ();
+    drawBigBoss();
+  }
+}
+
+// ===== VICTORY =====
+function showVictory() {
+  const vs = document.getElementById('victory-screen');
+  document.getElementById('final-lung').textContent = STATE.lungHealth + '%';
+  document.getElementById('final-money').textContent = '฿' + STATE.money.toLocaleString();
+  vs.classList.add('show');
+  // Draw victory art
+  const vc = document.getElementById('victory-canvas');
+  if (vc) {
+    const ctx = vc.getContext('2d');
+    ctx.clearRect(0, 0, 120, 80);
+    const s = SPRITES.ren;
+    s.forEach((row, y) => row.forEach((px, x) => {
+      if (px !== 0 && PALETTE[px]) {
+        ctx.fillStyle = PALETTE[px];
+        ctx.fillRect(30 + x * 8, 0 + y * 8, 8, 8);
+      }
+    }));
+  }
+}
+
+function restartGame() {
+  STATE.lungHealth = 100;
+  STATE.money = 0;
+  STATE.bossHp = 100;
+  STATE.phase = 'intro';
+  dlgState.idx = 0;
+  bossQState.idx = 0;
+  scanCount = 0;
+  updateHUD();
+  updateBossHp();
+  document.getElementById('victory-screen').classList.remove('show');
+  goPhase('intro');
+}
+
+// ===== PARTICLES =====
+function spawnParticles() {
+  const colors = ['#ff2d78', '#00f5ff', '#39ff14', '#bf5fff', '#ffe600'];
+  for (let i = 0; i < 12; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const sz = Math.random() * 4 + 1;
+    p.style.cssText = `
+      width:${sz}px; height:${sz}px;
+      left:${Math.random() * 100}vw;
+      bottom: -10px;
+      background:${colors[Math.floor(Math.random() * colors.length)]};
+      box-shadow: 0 0 6px currentColor;
+      animation-duration: ${6 + Math.random() * 8}s;
+      animation-delay: ${Math.random() * 8}s;
+      opacity: 0;
+    `;
+    document.body.appendChild(p);
+  }
+}
+
+// ===== INIT =====
+function init() {
+  spawnParticles();
+  updateHUD();
+  updateBossHp();
+  // Draw sidebar boss
+  setTimeout(() => {
+    const sc = document.getElementById('boss-canvas');
+    if (sc) drawSprite(sc, 'strawberry', 10);
+    initIntro();
+  }, 100);
+}
+
+init();
+</script>
+</body>
+</html>
